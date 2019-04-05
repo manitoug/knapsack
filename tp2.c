@@ -66,7 +66,7 @@ int litjeu(char *ficjeu) {
     return 0;
 }
 
-void updateBestValue(int j){
+void update(int j){
     int currentTotalValue = 0;
     for(int c = 0; c < 500; c++){
         if(x[c]){
@@ -87,7 +87,7 @@ void take(int j) {
         consomax[i] -= conso[i][j];
     }
 
-    updateBestValue(j);
+    update(j);
 }
 
 void putBack(int j){
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
 
     if (argc < 2) {
-        fprintf(stderr, "1) prefixe du probleme mkp01 : xxx.dat\n");
+        fprintf(stderr, "Écrire le num du .dat !\n");
         return 0;
     }
 
@@ -156,3 +156,45 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
+
+/* Résultats : (interrompus à 60 sec)
+
+commande unix pour lancer le programme 30 fois :
+``` bash
+for x in $(seq 0 29); do a.out $x; done;
+```
+
+Résultats pour un CPU i3-4020Y à 1.50GHz : (programme monothreadé)
+
+ 0.dat  92102
+ 1.dat  87152
+ 2.dat  92398
+ 3.dat  89880
+ 4.dat  91043
+ 5.dat  89795
+ 6.dat  87692
+ 7.dat  87008
+ 8.dat  89191
+ 9.dat  90520
+10.dat 184633
+11.dat 182212
+12.dat 180485
+13.dat 185675
+14.dat 184241
+15.dat 181876
+16.dat 185180
+17.dat 183576
+18.dat 183104
+19.dat 179822
+20.dat 276339
+21.dat 276290
+22.dat 280210
+23.dat 276252
+24.dat 281580
+25.dat 271182
+26.dat 281364
+27.dat 280458
+28.dat 277945
+29.dat 276052
+*/
