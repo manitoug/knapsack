@@ -1,78 +1,158 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <stdint.h>
 #include <time.h>
 
-#define MAXDIM 1000
-int cout[MAXDIM][MAXDIM];
+int gain[500],        // ===> le gain de chaque objet
+        conso[30][500], // ===> la conso de chaque objet pour chaque sac
+        consomax[30];    // ===> la conso maximale que peut supporter un sacs
+int NBVAR = 500,            // ===> n
+        NBRCNT = 30;        // ===> m
 
-int DIM;
-int liremat(char *fic);
-char fichier[1024];
-void dumpmat(void);
+int x[500]; // les objets qu'on a pris dans la branche actuelle
+int z; //
 
-void main(int n,char *arg[]){
-	int err;
-	if (n<2) return 0;
-	sprintf(fichier,"aff%s.txt",arg[1]);
-	if (liremat(fichier)==0)
-		dumpmat();
-	return 0;
-}
+clock_t start;
+clock_t timeEnd;
+int bestValue = 0;
 
-int liremat(char *fic){
-	FILE *f;
-	int i,j;
-	f=fopen(fic,"r");
-	if (f==NULL) return 1;
-	if (fscanf(f,"%d",&DIM)!=1)  {fclose(f);return 2;}
-	if (DIM>MAXDIM) {fclose(f);return 3;}
-	for (i=0;i<DIM;i++) 
-		for (j=0;j<DIM;j++)
-				if (fscanf(f,"%d ",cout[i]+j)!=1)  {fclose(f);return 4;}
-	fclose(f);
-	return 0;
-}
-
-void dumpmat(void)
-	{dd
-	int i,j;
-	printf("%d\n",DIM);
-	for (i=0;i<DIM;i++) 
-		{
-		printf("\n");
-		for (j=0;j<DIM;j++)
-			printf("%4d ",cout[i][j]);
-		}
-	}
-
-void solve (int i){
-    if (i<nbrVar){
-        if (isOk(i)){
-            prendre(i);
-            solve(i+1);
-            rendre(i);
+int litjeu(char *ficjeu) {
+    FILE *f;
+    int p, c;
+    f = fopen(ficjeu, "r");
+    if (f == NULL) {
+        fprintf(stderr, "erreur en ouverture de %s\n", ficjeu);
+        return 1;
+    }
+	/*********************/
+	/* lecture de n et m */
+	/*********************/
+    if (fscanf(f, "%d%d", &NBVAR, &NBRCNT) != 2) {
+        fprintf(stderr, "erreur en lecture de nbrvar %d et nbrcnt %d dans %s\n", NBVAR, NBRCNT, ficjeu);
+        fclose(f);
+        return 2;
+    }
+	/****************/
+	/* lecture de c */
+	/****************/
+    for (p = 0; p < NBVAR; p++)
+        if (fscanf(f, "%d", gain + p) != 1) {
+            fprintf(stderr, "erreur en lecture du poids %d dans %s\n", p, ficjeu);
+            fclose(f);
+            return 2;
         }
-        solve(i+1);
+	/****************/
+	/* lecture de b */
+	/****************/
+    for (c = 0; c < NBRCNT; c++)
+        if (fscanf(f, "%d", consomax + c) != 1) {
+            fprintf(stderr, "erreur en lecture de la contrainte %d dans %s\n", c, ficjeu);
+            fclose(f);
+            return 2;
+        }
+	/****************/
+	/* lecture de A */
+	/****************/
+    for (c = 0; c < NBRCNT; c++)
+        for (p = 0; p < NBVAR; p++)
+            if (fscanf(f, "%d", &conso[c][p]) != 1) {
+                fprintf(stderr, "erreur en lecture de la conso %d de la variable %d dans %s\n", c, p, ficjeu);
+                fclose(f);
+                return 2;
+            }
+    fclose(f);
+    return 0;
+}
+
+void updateBestValue(int j){
+    int currentTotalValue = 0;
+    for(int c = 0; c < 500; c++){
+        if(x[c]){
+            currentTotalValue += gain[c];
+        }
+    }
+    if(currentTotalValue > bestValue){
+        bestValue = currentTotalValue;
     }
 }
 
-void prendre(int j){//j nombre de colonnes disponibles
-    int i; //Lignes
-    int GainCourant += gain[i];
-    int X[j]=1;
-    //MAJ les Sacs à dos
-    for (i=0; i<nbrCub; i++){
-        capacite[i]<cause[i][j];
+void take(int j) {
+
+    z += gain[j];
+    x[j] = 1;
+
+    for (int i = 0; i < NBRCNT; i++) {
+        consomax[i] -= conso[i][j];
     }
 
-void rendre(int i){
-	int
-    X[i]=0        
+    updateBestValue(j);
 }
 
-bool isOk(int j){
-	for (int i=0; i<abstract; i++){
-		if (capacite[i][j]) return false;
-	return true;
-	}
+void putBack(int j){
+
+    z -= gain[j];
+    x[j] = 0;
+
+    for (int i = 0; i < NBRCNT; i++) {
+        consomax[i] += conso[i][j];
+    }
+
+}
+
+int isOk(int j){
+    for(int i = 0; i < NBRCNT; i++){
+        if(consomax[i] < conso[i][j]) return 0;
+    }
+    return 1;
+}
+
+int solve(int j){
+    if(time(NULL) > timeEnd){
+        return 0; //Whatever, c'est pour quitter la fonction
+    }
+    if(j < NBVAR){
+        if(isOk(j)){
+            take(j);
+            solve(j+1);
+            putBack(j);
+        }
+
+        for(int c = 0; c < 500; c++){
+            printf("%d", x[c]);
+        }
+        printf("\n");
+
+        solve(j+1);
+    }
+}
+
+int main(int argc, char **argv) {
+
+    int i, j, status = 0;
+    char ficjeu[128];
+
+    for(int c = 0; c<500; c++){
+        x[c] = 0;
+    }
+
+
+    if (argc < 2) {
+        fprintf(stderr, "1) prefixe du probleme mkp01 : xxx.dat\n");
+        return 0;
+    }
+
+    sprintf(ficjeu, "./data/cb30.500_%s.dat", argv[1]);
+    if (litjeu(ficjeu) != 0) return 0;
+
+    printf("\n%s : %d variable %d contraintes", ficjeu, NBVAR, NBRCNT);
+
+    start = time(NULL);
+    timeEnd = start + 60;
+    solve(0);
+
+    printf("%d", bestValue);
+
+    return 0;
 }
