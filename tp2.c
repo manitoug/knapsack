@@ -1,3 +1,8 @@
+/*Fait par :
+ * Raphaël ACISCLO
+ * Mathieu GARDETTE
+ * Joshua WOLFCARIUS
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
